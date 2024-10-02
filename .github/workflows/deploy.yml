@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Push Event Slack
 
 on:
   push:
@@ -6,34 +6,15 @@ on:
       - main  
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest  
+  notify:
+    runs-on: ubuntu-latest
+
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2  
+      uses: actions/checkout@v2
 
-    - name: Install dependencies
-      run: sudo apt-get install -y openssh-client  
-
-    - name: Add the SSH private key
+    - name: Send message to Slack
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_PEM }}" > ~/.ssh/ec2-key.pem  # PEM 파일을 생성
-        chmod 600 ~/.ssh/ec2-key.pem  # 키 파일 권한 설정
-
-    - name: Copy files to EC2
-      run: |
-        scp -o StrictHostKeyChecking=no -i ~/.ssh/ec2-key.pem -r * ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/test4/github-actions-practice2
-      env:
-        EC2_PEM: ${{ secrets.EC2_PEM }}
-        EC2_USER: ${{ secrets.EC2_USER }}
-        EC2_HOST: ${{ secrets.EC2_HOST }}
-
-    - name: SSH into EC2 and restart service
-      run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cd /home/ubuntu/test4/github-actions-practice2 && sudo docker-compose down && sudo docker-compose up -d --build"
-      env:
-        EC2_PEM: ${{ secrets.EC2_PEM }}
-        EC2_USER: ${{ secrets.EC2_USER }}
-        EC2_HOST: ${{ secrets.EC2_HOST }}
-
+        curl -X POST -H 'Content-type: application/json' --data \
+        '{"text":"test"}' \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
